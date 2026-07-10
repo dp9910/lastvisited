@@ -7,19 +7,21 @@
   chrome.runtime.onMessage.addListener((message) => {
     if (message?.type === 'DUPLICATE_TAB_DETECTED') {
       showBadge({
-        text: `Already open in another tab · since ${message.openedText}`,
+        title: 'Already open in another tab',
+        detail: `Opened ${message.openedText}${message.openedAbsolute ? ` · ${message.openedAbsolute}` : ''}`,
         buttonLabel: 'Switch',
         onAction: () => chrome.runtime.sendMessage({ type: 'FOCUS_TAB', tabId: message.existingTabId }),
       });
     } else if (message?.type === 'HISTORY_MATCH_DETECTED') {
       showBadge({
-        text: `You visited this page ${message.visitedText}${message.visitCountText}`,
+        title: 'Visited before',
+        detail: `${message.visitedText} · ${message.visitedAbsolute}${message.visitCountText}`,
         buttonLabel: null,
       });
     }
   });
 
-  function showBadge({ text, buttonLabel, onAction }) {
+  function showBadge({ title, detail, buttonLabel, onAction }) {
     const existing = document.getElementById('tab-duplicate-flagger-badge');
     if (existing) existing.remove();
 
@@ -29,11 +31,18 @@
       'position:fixed', 'top:12px', 'right:12px', 'z-index:2147483647',
       'background:#202124', 'color:#fff', 'font:13px/1.4 -apple-system,BlinkMacSystemFont,sans-serif',
       'padding:10px 14px', 'border-radius:8px', 'box-shadow:0 2px 10px rgba(0,0,0,0.3)',
-      'display:flex', 'align-items:center', 'gap:10px', 'max-width:340px',
+      'display:flex', 'align-items:center', 'gap:12px', 'max-width:360px',
     ].join(';');
 
-    const textEl = document.createElement('span');
-    textEl.textContent = text;
+    const textEl = document.createElement('div');
+    const titleEl = document.createElement('div');
+    titleEl.textContent = title;
+    titleEl.style.cssText = 'font-weight:600;';
+    const detailEl = document.createElement('div');
+    detailEl.textContent = detail;
+    detailEl.style.cssText = 'color:#bdc1c6;font-size:12px;margin-top:2px;';
+    textEl.appendChild(titleEl);
+    textEl.appendChild(detailEl);
     badge.appendChild(textEl);
 
     if (buttonLabel) {
@@ -57,6 +66,6 @@
     badge.appendChild(close);
 
     document.documentElement.appendChild(badge);
-    setTimeout(() => badge.remove(), 10000);
+    setTimeout(() => badge.remove(), 15000);
   }
 })();

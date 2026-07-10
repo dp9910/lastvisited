@@ -37,7 +37,10 @@ function renderDuplicateGroups(groups) {
     const sortedTabs = [...group.tabs].sort((a, b) => (a.openedAt ?? 0) - (b.openedAt ?? 0));
     for (const tab of sortedTabs) {
       const row = el('div', 'dup-tab-row');
-      row.appendChild(el('span', 'dup-tab-meta', `Opened ${tab.openedAt ? formatRelativeTime(tab.openedAt) : 'earlier this session'}`));
+      const openedMeta = tab.openedAt
+        ? `Opened ${formatRelativeTime(tab.openedAt)} · ${formatAbsoluteTime(tab.openedAt)}`
+        : 'Opened earlier this session';
+      row.appendChild(el('span', 'dup-tab-meta', openedMeta));
       const btn = el('button', 'switch-btn', 'Switch');
       btn.addEventListener('click', () => {
         chrome.runtime.sendMessage({ type: 'FOCUS_TAB', tabId: tab.tabId });
@@ -62,7 +65,7 @@ function renderHistoryMatches(matches) {
   for (const item of matches) {
     const row = el('div', 'history-row');
     const left = document.createElement('div');
-    left.appendChild(el('div', 'history-when', formatRelativeTime(item.lastVisitTime)));
+    left.appendChild(el('div', 'history-when', `${formatRelativeTime(item.lastVisitTime)} · ${formatAbsoluteTime(item.lastVisitTime)}`));
     left.appendChild(el('div', 'dup-group-url', item.url));
     row.appendChild(left);
     row.appendChild(el('span', 'history-count', item.visitCount > 1 ? `${item.visitCount}×` : ''));

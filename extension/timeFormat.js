@@ -26,9 +26,23 @@ function formatRelativeTime(timestampMs) {
   });
 }
 
+function formatAbsoluteTime(timestampMs) {
+  if (!timestampMs) return 'unknown time';
+
+  const date = new Date(timestampMs);
+  const isToday = date.toDateString() === new Date().toDateString();
+
+  return date.toLocaleString(undefined, {
+    ...(isToday ? {} : { month: 'short', day: 'numeric' }),
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 if (typeof self !== 'undefined') {
   self.formatRelativeTime = formatRelativeTime;
+  self.formatAbsoluteTime = formatAbsoluteTime;
 }
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { formatRelativeTime };
+  module.exports = { formatRelativeTime, formatAbsoluteTime };
 }

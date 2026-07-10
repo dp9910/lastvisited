@@ -66,14 +66,14 @@ async function injectBadge(tabId, message) {
     await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] });
     await chrome.tabs.sendMessage(tabId, message);
   } catch (e) {
-    // Injection can fail on restricted pages (Web Store, PDFs, etc.) — the
-    // Chrome notification still covers the user in that case.
+    console.error('[TabDuplicateFlagger] injectBadge failed', tabId, e);
   }
 }
 
 async function notifyDuplicateTab(newTabId, existingTab) {
   const existingMeta = tabMeta.get(existingTab.id);
   const openedText = existingMeta ? formatRelativeTime(existingMeta.openedAt) : 'earlier this session';
+  const openedAbsolute = existingMeta ? formatAbsoluteTime(existingMeta.openedAt) : null;
 
   const notificationId = `dup-${newTabId}-${existingTab.id}-${Date.now()}`;
   notificationMap.set(notificationId, { type: 'duplicate', existingTabId: existingTab.id });
@@ -82,7 +82,7 @@ async function notifyDuplicateTab(newTabId, existingTab) {
     type: 'basic',
     iconUrl: 'icons/icon128.png',
     title: 'This page is already open',
-    message: `${existingTab.title ? `"${existingTab.title}"` : 'It'} has been open in another tab since ${openedText}.`,
+    message: `${existingTab.title ? `"${existingTab.title}"` : 'It'} has been open in another tab since ${openedText}${openedAbsolute ? ` (${openedAbsolute})` : ''}.`,
     buttons: [{ title: 'Switch to that tab' }],
     priority: 1,
   });
@@ -91,11 +91,13 @@ async function notifyDuplicateTab(newTabId, existingTab) {
     type: 'DUPLICATE_TAB_DETECTED',
     existingTabId: existingTab.id,
     openedText,
+    openedAbsolute,
   });
 }
 
 async function notifyHistoryMatch(tabId, historyItem) {
   const visitedText = formatRelativeTime(historyItem.lastVisitTime);
+  const visitedAbsolute = formatAbsoluteTime(historyItem.lastVisitTime);
   const visitCountText = historyItem.visitCount > 1 ? ` (visited ${historyItem.visitCount}×)` : '';
 
   const notificationId = `hist-${tabId}-${Date.now()}`;
@@ -105,13 +107,14 @@ async function notifyHistoryMatch(tabId, historyItem) {
     type: 'basic',
     iconUrl: 'icons/icon128.png',
     title: "You've visited this page before",
-    message: `Last visited ${visitedText}${visitCountText}.`,
+    message: `Last visited ${visitedText} (${visitedAbsolute})${visitCountText}.`,
     priority: 0,
   });
 
   await injectBadge(tabId, {
     type: 'HISTORY_MATCH_DETECTED',
     visitedText,
+    visitedAbsolute,
     visitCountText,
   });
 }
