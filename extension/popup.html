@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Tab Duplicate Flagger</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="header">
+    <img src="icons/icon48.png" alt="" class="header-icon" />
+    <div>
+      <h1>Tab Duplicate Flagger</h1>
+      <p class="subtitle">Open tabs &amp; recent visits for this page</p>
+    </div>
+  </header>
+
+  <main>
+    <section class="section">
+      <h2>Open duplicate tabs</h2>
+      <div id="duplicates" class="section-body">
+        <p class="empty-state">Checking open tabs…</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Visited before <span class="muted">(last 7 days)</span></h2>
+      <div id="history" class="section-body">
+        <p class="empty-state">Checking history…</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="urlNormalizer.js"></script>
+  <script src="timeFormat.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

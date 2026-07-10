@@ -37,6 +37,12 @@ function stripTrackingParams(searchParams) {
   return searchParams;
 }
 
+const SKIPPED_SCHEMES = ['chrome://', 'chrome-extension://', 'about:', 'edge://', 'devtools://'];
+
+function isTrackableUrl(url) {
+  return !!url && !SKIPPED_SCHEMES.some((scheme) => url.startsWith(scheme));
+}
+
 function normalizeUrl(rawUrl) {
   let url;
   try {
@@ -62,10 +68,11 @@ function normalizeUrl(rawUrl) {
   return `${host}${path}${sortedSearch ? '?' + sortedSearch : ''}`;
 }
 
-// Exposed for the service worker (importScripts) and for tests.
+// Exposed for the service worker (importScripts), the popup, and tests.
 if (typeof self !== 'undefined') {
   self.normalizeUrl = normalizeUrl;
+  self.isTrackableUrl = isTrackableUrl;
 }
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { normalizeUrl };
+  module.exports = { normalizeUrl, isTrackableUrl };
 }

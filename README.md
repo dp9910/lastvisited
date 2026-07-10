@@ -1,9 +1,10 @@
 # Tab Duplicate Flagger
 
 A Chrome extension (Manifest V3) that detects when the same page is already
-open in another tab and lets you jump straight to it instead of duplicating it.
+open in another tab — or was visited recently — and lets you jump straight to
+it instead of duplicating it.
 
-See [docs/tab-duplicate-flagger-spec.md](docs/tab-duplicate-flagger-spec.md) for the full spec.
+See [docs/tab-duplicate-flagger-spec.md](docs/tab-duplicate-flagger-spec.md) for the original v1 spec.
 
 ## How it works
 
@@ -11,27 +12,41 @@ See [docs/tab-duplicate-flagger-spec.md](docs/tab-duplicate-flagger-spec.md) for
 - Normalizes each tab's URL (`extension/urlNormalizer.js`):
   - Strips common tracking params (`utm_*`, `ref`, `fbclid`, `psc`, `th`, etc.)
   - Extracts stable site-specific IDs where possible (e.g. Amazon ASIN from `/dp/{ID}`, regardless of query string)
-- Compares the normalized URL against all other currently open tabs.
-- On a match: shows a Chrome notification and an in-page badge, both with a
-  "switch to that tab" action that focuses the existing tab/window.
+- **Open-tab duplicates**: compares the normalized URL against all other
+  currently open tabs. On a match: a Chrome notification and an in-page badge
+  show which tab has it open and since when, with a "switch to that tab" action.
+- **Recent-visit duplicates**: if the page isn't open elsewhere, checks
+  `chrome.history` for visits in the last 7 days to the same normalized URL. On
+  a match: a notification/badge shows when it was last visited and how many times.
+- **Popup dashboard** (click the toolbar icon): lists every group of open
+  duplicate tabs (with per-tab "opened X ago" and a Switch button) and the
+  current tab's visit history for the last 7 days. The toolbar icon also shows
+  a badge count of open duplicate tabs.
 
-Everything is in-memory for the current browser session — no accounts, no
-backend, no `history` permission.
+Everything is in-memory for open-tab tracking (nothing persists across a
+browser restart); history lookups read directly from Chrome's own history for
+the trailing 7-day window and nothing is stored by the extension itself.
 
 ## Load it locally
 
 1. Go to `chrome://extensions`.
 2. Enable "Developer mode" (top right).
 3. Click "Load unpacked" and select the `extension/` folder.
-4. Open the same page (e.g. an Amazon product) in two tabs to see it in action.
+4. Open the same page (e.g. an Amazon product) in two tabs to see it in action,
+   or revisit a page you loaded earlier this week to see the history match.
+
+Note: recent Chrome versions ignore the `--load-extension` command-line flag
+for the stable build — "Load unpacked" via the UI above is the supported path.
 
 ## Files
 
 ```
 extension/
-  manifest.json       # MV3 config
-  background.js       # service worker, watches tabs, does matching
+  manifest.json       # MV3 config (tabs, notifications, scripting, history)
+  background.js       # service worker: watches tabs, matches duplicates, scans history
   urlNormalizer.js     # strips tracking params, extracts site-specific IDs
+  timeFormat.js        # shared "X ago" time formatting
   content.js           # in-page badge alongside the Chrome notification
+  popup.html/css/js    # toolbar popup dashboard
   icons/               # 16/48/128 icons
 ```
