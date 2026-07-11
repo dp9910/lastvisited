@@ -18,11 +18,16 @@ const TRACKING_PARAM_NAMES = new Set([
 // string when the URL matches, or null to fall through to generic normalization.
 const SITE_EXTRACTORS = [
   {
-    // Amazon: /dp/{ASIN} or /gp/product/{ASIN}, any locale domain, any query string.
+    // Amazon: /dp/{ASIN}, /gp/product/{ASIN}, /gp/aw/d/{ASIN} (mobile app
+    // links), or the legacy /exec/obidos/asin/{ASIN} — any query string.
     hostTest: (host) => /(^|\.)amazon\.[a-z.]+$/i.test(host),
     extract: (host, pathname) => {
-      const match = pathname.match(/\/(?:dp|gp\/product)\/([A-Z0-9]{10})/i);
-      return match ? `amazon:${host}:${match[1].toUpperCase()}` : null;
+      // Subdomains like smile./m. are the same marketplace as the bare
+      // domain, just a different front door — collapse them so tabs on
+      // smile.amazon.com and www.amazon.com for the same ASIN still match.
+      const marketplace = host.match(/amazon\.[a-z.]+$/i)?.[0] ?? host;
+      const match = pathname.match(/\/(?:dp|gp\/product|gp\/aw\/d|exec\/obidos\/asin)\/([A-Z0-9]{10})\b/i);
+      return match ? `amazon:${marketplace}:${match[1].toUpperCase()}` : null;
     },
   },
 ];
