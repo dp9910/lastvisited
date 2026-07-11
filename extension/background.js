@@ -126,7 +126,7 @@ async function notifyDuplicateTab(newTabId, existingTab) {
     title: 'This page is already open',
     message: `${existingTab.title ? `"${existingTab.title}"` : 'It'} has been open in another tab since ${openedText}${openedAbsolute ? ` (${openedAbsolute})` : ''}.`,
     buttons: [{ title: 'Switch to that tab' }],
-    priority: 1,
+    priority: 2,
   });
 
   await injectBadge(newTabId, {
@@ -149,7 +149,7 @@ async function notifyHistoryMatch(tabId, historyItem) {
     iconUrl: 'icons/icon128.png',
     title: "You've visited this page before",
     message: `Last visited ${visitedText} (${visitedAbsolute})${visitCountText}.`,
-    priority: 0,
+    priority: 2,
   });
 
   await injectBadge(tabId, {
