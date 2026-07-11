@@ -1,11 +1,16 @@
 // Normalizes tab URLs so duplicate pages compare equal regardless of
 // tracking params, param ordering, or www/trailing-slash differences.
 
-const TRACKING_PARAM_PREFIXES = ['utm_'];
+const TRACKING_PARAM_PREFIXES = ['utm_', 'cm_'];
 
 const TRACKING_PARAM_NAMES = new Set([
   'ref', 'ref_src', 'ref_url',
-  'fbclid', 'gclid', 'gclsrc', 'dclid', 'msclkid', 'yclid', 'twclid',
+  // Ad-platform click IDs — each is a unique, per-click token, so leaving
+  // any one of these in place means the "same" ad clicked twice never
+  // normalizes to the same URL twice.
+  'fbclid', 'gclid', 'gclsrc', 'gbraid', 'wbraid', 'dclid', 'msclkid', 'yclid', 'twclid',
+  'ttclid', 'li_fat_id', 'epik', 'mkt_tok', 'vero_id', 'vero_conv',
+  'gad_source', 'gad_campaignid',
   'mc_cid', 'mc_eid',
   'igshid', 'igsh',
   '_hsenc', '_hsmid',
