@@ -1,4 +1,4 @@
-# Tab Duplicate Flagger
+# Last Visited
 
 A Chrome extension (Manifest V3) that detects when the same page is already
 open in another tab — or was visited recently — and lets you jump straight to
@@ -23,9 +23,13 @@ See [docs/tab-duplicate-flagger-spec.md](docs/tab-duplicate-flagger-spec.md) for
   current tab's visit history for the last 7 days. The toolbar icon also shows
   a badge count of open duplicate tabs.
 
-Everything is in-memory for open-tab tracking (nothing persists across a
-browser restart); history lookups read directly from Chrome's own history for
-the trailing 7-day window and nothing is stored by the extension itself.
+Everything is session-scoped for open-tab tracking (kept in
+`chrome.storage.session`, which — like a plain in-memory variable — is cleared
+when the browser closes, but unlike one survives the service worker being
+suspended mid-session); history lookups read directly from Chrome's own
+history for the trailing 7-day window and nothing is stored by the extension
+itself. In incognito windows, history-based matching is skipped entirely so a
+private tab never surfaces regular-window browsing history.
 
 ## Load it locally
 
@@ -42,7 +46,7 @@ for the stable build — "Load unpacked" via the UI above is the supported path.
 
 ```
 extension/
-  manifest.json       # MV3 config (tabs, notifications, scripting, history)
+  manifest.json       # MV3 config (tabs, notifications, scripting, history, storage)
   background.js       # service worker: watches tabs, matches duplicates, scans history
   urlNormalizer.js     # strips tracking params, extracts site-specific IDs
   timeFormat.js        # shared "X ago" time formatting

@@ -158,6 +158,7 @@ async function checkHistory(tabId, normalized, rawUrl) {
   } catch (e) {
     return;
   }
+  if (!hostname) return; // e.g. file:// URLs — no meaningful text to search history with
 
   const now = Date.now();
   const results = await chrome.history.search({
@@ -173,7 +174,7 @@ async function checkHistory(tabId, normalized, rawUrl) {
   if (match) await notifyHistoryMatch(tabId, match);
 }
 
-async function handleTabUrl(tabId, rawUrl) {
+async function handleTabUrl(tabId, rawUrl, incognito) {
   if (!isTrackableUrl(rawUrl)) {
     await deleteTabMetaEntry(tabId);
     await updateBadge();
@@ -194,7 +195,10 @@ async function handleTabUrl(tabId, rawUrl) {
 
   if (duplicateTab) {
     await notifyDuplicateTab(tabId, duplicateTab);
-  } else {
+  } else if (!incognito) {
+    // chrome.history never records incognito browsing, but it would still
+    // surface *regular* browsing history inside a private window — skip it
+    // there so an incognito tab never surfaces non-incognito history.
     await checkHistory(tabId, normalized, rawUrl);
   }
 
@@ -208,12 +212,12 @@ async function handleTabUrl(tabId, rawUrl) {
 // notification storm.
 const lastHandledUrl = new Map();
 
-function maybeHandleTabUrl(tabId, rawUrl) {
+function maybeHandleTabUrl(tabId, rawUrl, incognito) {
   if (!rawUrl) return;
   const normalized = isTrackableUrl(rawUrl) ? normalizeUrl(rawUrl) : rawUrl;
   if (lastHandledUrl.get(tabId) === normalized) return;
   lastHandledUrl.set(tabId, normalized);
-  handleTabUrl(tabId, rawUrl);
+  handleTabUrl(tabId, rawUrl, incognito);
 }
 
 chrome.runtime.onInstalled.addListener(rebuildState);
@@ -221,9 +225,9 @@ chrome.runtime.onStartup.addListener(rebuildState);
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.url) {
-    maybeHandleTabUrl(tabId, changeInfo.url);
+    maybeHandleTabUrl(tabId, changeInfo.url, tab.incognito);
   } else if (changeInfo.status === 'complete' && tab.url) {
-    maybeHandleTabUrl(tabId, tab.url);
+    maybeHandleTabUrl(tabId, tab.url, tab.incognito);
   }
 });
 
@@ -236,7 +240,7 @@ chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
   lastHandledUrl.delete(removedTabId);
   deleteTabMetaEntry(removedTabId);
   chrome.tabs.get(addedTabId).then((tab) => {
-    if (tab && isTrackableUrl(tab.url)) maybeHandleTabUrl(addedTabId, tab.url);
+    if (tab && isTrackableUrl(tab.url)) maybeHandleTabUrl(addedTabId, tab.url, tab.incognito);
   }).catch(() => {});
 });
 
