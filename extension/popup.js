@@ -1,5 +1,12 @@
 const HISTORY_DECAY_DAYS = 7;
-const HISTORY_DECAY_MS = HISTORY_DECAY_DAYS * 24 * 60 * 60 * 1000;
+
+// Start of day, N days ago — see the matching comment in background.js for
+// why this isn't a strict "now minus N*24h" rolling window.
+function getHistoryStartTime() {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  return startOfToday.getTime() - HISTORY_DECAY_DAYS * 24 * 60 * 60 * 1000;
+}
 
 const duplicatesEl = document.getElementById('duplicates');
 const historyEl = document.getElementById('history');
@@ -100,7 +107,7 @@ async function loadHistoryForActiveTab() {
 
   const results = await chrome.history.search({
     text: hostname,
-    startTime: Date.now() - HISTORY_DECAY_MS,
+    startTime: getHistoryStartTime(),
     maxResults: 100,
   });
 

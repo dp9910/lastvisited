@@ -17,7 +17,12 @@ function formatRelativeTime(timestampMs) {
     const h = Math.floor(diffMs / hour);
     return `${h} hour${h === 1 ? '' : 's'} ago`;
   }
-  if (diffMs < 7 * day) {
+  // The history-match window looks back to the start of the calendar day
+  // 7 days ago, not a strict rolling 168h — so a match can be up to just
+  // under 8*24h old depending on time of day. Cover that here too, or a
+  // same-day-boundary match would fall through to the redundant-looking
+  // absolute-only branch below.
+  if (diffMs < 8 * day) {
     const d = Math.floor(diffMs / day);
     return `${d} day${d === 1 ? '' : 's'} ago`;
   }

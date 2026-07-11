@@ -1,9 +1,18 @@
 importScripts('urlNormalizer.js', 'timeFormat.js');
 
 const HISTORY_DECAY_DAYS = 7;
-const HISTORY_DECAY_MS = HISTORY_DECAY_DAYS * 24 * 60 * 60 * 1000;
 const IGNORE_RECENT_VISIT_MS = 60 * 1000; // don't match the visit chrome.history just logged for this navigation
 const TAB_META_KEY = 'tabMeta';
+
+// Start of day, N days ago — not "now minus N*24h". A strict rolling window
+// would exclude a visit from earlier today N days ago (e.g. checking at 2pm
+// excludes a visit from before 2pm that day), which doesn't match how users
+// think of "I visited this N days ago": the whole calendar day should count.
+function getHistoryStartTime() {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  return startOfToday.getTime() - HISTORY_DECAY_DAYS * 24 * 60 * 60 * 1000;
+}
 
 // tabId -> { normalizedUrl, openedAt }, kept in chrome.storage.session rather
 // than a plain JS Map: MV3 service workers are torn down after ~30s idle and
@@ -170,7 +179,7 @@ async function checkHistory(tabId, normalized, rawUrl) {
   const now = Date.now();
   const results = await chrome.history.search({
     text: hostname,
-    startTime: now - HISTORY_DECAY_MS,
+    startTime: getHistoryStartTime(),
     maxResults: 100,
   }).catch(() => []);
 

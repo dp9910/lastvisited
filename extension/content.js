@@ -121,6 +121,6 @@
     badge.appendChild(close);
 
     document.documentElement.appendChild(badge);
-    setTimeout(() => badge.remove(), 15000);
+    setTimeout(() => badge.remove(), 30000);
   }
 })();
