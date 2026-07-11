@@ -24,12 +24,12 @@ The moment you open a page that's already sitting in another tab, you get a
 notification and a small on-page badge — with exactly when that other tab
 was opened — plus a one-click "switch to that tab" button.
 
-If the page isn't open right now but you visited it in the last 7 days,
+If the page isn't open right now but it's anywhere in your browsing history,
 Last Visited tells you that too: last visited date/time and how many times.
 
 Click the toolbar icon any time for a full dashboard: every group of
 duplicate tabs currently open (with per-tab "opened X ago"), and the current
-tab's visit history for the last week.
+tab's visit history.
 
 PRIVACY
 Everything runs locally in your browser. There is no backend, no account, no
@@ -38,7 +38,7 @@ on this listing for the full breakdown of what each permission is used for.
 
 PERMISSIONS, IN PLAIN ENGLISH
 - Tabs: to compare open tabs' URLs against each other.
-- History: to check the last 7 days for a matching visit (skipped entirely
+- History: to check for any prior visit to the same page (skipped entirely
   in incognito windows).
 - Notifications: to show the "already open" / "visited before" alert.
 - Scripting: to show the small on-page badge next to the notification.

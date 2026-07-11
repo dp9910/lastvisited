@@ -22,7 +22,7 @@ Last Visited does not collect, transmit, sell, or store any data anywhere.
 | Data | Why it's needed | Where it goes |
 |---|---|---|
 | Open tabs' URLs and titles (`tabs` permission) | To detect when the same page is open in more than one tab | Compared in memory on your device only |
-| Browsing history from the last 7 days (`history` permission) | To detect when you revisited a page you visited recently | Read locally to compare against the current tab; never copied, stored, or sent anywhere |
+| Browsing history (`history` permission) | To detect when you've visited a page before — any prior visit in your history, not limited to a fixed number of days | Read locally to compare against the current tab; never copied, stored, or sent anywhere |
 | Notifications (`notifications` permission) | To show a system notification when a duplicate/recent visit is found | Local OS notification only |
 | Script injection into the current page (`scripting` + host permissions) | To show a small on-page badge alongside the notification | Runs only in your browser, on the page you're already viewing |
 | Session storage (`storage` permission) | To remember when each open tab was first seen, so "opened X ago" survives the browser's background service worker restarting | Local to your browser session; cleared on browser close |
