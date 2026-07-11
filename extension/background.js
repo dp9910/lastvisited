@@ -154,7 +154,14 @@ async function notifyHistoryMatch(tabId, historyItem) {
 async function checkHistory(tabId, normalized, rawUrl) {
   let hostname;
   try {
-    hostname = new URL(rawUrl).hostname;
+    // Strip www. so this is a substring of a stored history entry regardless
+    // of which variant it was visited under — many sites (this includes a
+    // lot of .edu/.gov sites) serve the identical page on both www.example.com
+    // and example.com with no redirect, so a raw hostname would only match
+    // history in one direction (e.g. "www.example.com" is not a substring of
+    // a stored "example.com/..." URL, even though normalizeUrl treats them
+    // as the same page).
+    hostname = new URL(rawUrl).hostname.replace(/^www\./, '');
   } catch (e) {
     return;
   }

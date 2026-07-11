@@ -93,7 +93,10 @@ async function loadHistoryForActiveTab() {
   }
 
   const normalized = normalizeUrl(activeTab.url);
-  const hostname = new URL(activeTab.url).hostname;
+  // Strip www. so this matches a stored history entry regardless of which
+  // variant it was visited under — see the comment in background.js's
+  // checkHistory for why (e.g. many .edu/.gov sites serve both identically).
+  const hostname = new URL(activeTab.url).hostname.replace(/^www\./, '');
 
   const results = await chrome.history.search({
     text: hostname,
