@@ -431,8 +431,8 @@
     flex-wrap: wrap;
   }
 
-  :root[data-theme="light"] .footer-cta .btn-ghost { border-color: rgba(250,249,246,0.28); color: var(--bg); }
-  :root[data-theme="light"] .footer-cta .btn-ghost:hover { border-color: rgba(250,249,246,0.6); }
+  .footer-cta .btn-ghost { border-color: var(--accent); color: var(--accent); }
+  .footer-cta .btn-ghost:hover { background: var(--accent); color: #fff; }
 
   footer.site {
     padding: 0 0 64px;
@@ -473,7 +473,7 @@
   <div class="wrap">
     <section class="hero">
       <p class="eyebrow">A Chrome Extension</p>
-      <h1 class="display">Wait, didn't I see this a few days ago?</h1>
+      <h1 class="display">Wait, didn't I visit this site a few days ago?</h1>
       <p class="lede">
         Last Visited shows you when you last visited a page and how many
         times — so if you already passed on those sunglasses, you don't have
@@ -491,21 +491,21 @@
         <div class="chrome-bar">
           <span class="dot"></span><span class="dot"></span><span class="dot"></span>
         </div>
-        <img src="assets/hero.jpg" alt="Last Visited badge showing a page last visited 7 days ago, visited 9 times" />
+        <img src="assets/vacation.png" alt="Last Visited badge showing a page last visited 7 days ago, visited 9 times" />
       </div>
     </section>
 
     <section class="section" id="features">
       <div class="section-head">
         <h2 class="display">Two ways it saves you a tab</h2>
-        <p>No settings to configure. It watches, compares, and only speaks up when it actually has something useful to say.</p>
+        <p>No settings to configure.</p>
       </div>
 
       <div class="feature-stack">
         <figure class="feature-item">
           <div class="browser-frame">
             <div class="chrome-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-            <img src="assets/duplicate.jpg" alt="Badge reading: last visited 10 minutes ago, still open in another tab, with a Switch to that tab button" />
+            <img src="assets/home.png" alt="Badge reading: last visited 10 minutes ago, still open in another tab, with a Switch to that tab button" />
           </div>
           <figcaption>Still open in another tab — one click switches you there.</figcaption>
         </figure>
@@ -513,7 +513,7 @@
         <figure class="feature-item">
           <div class="browser-frame">
             <div class="chrome-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-            <img src="assets/history.jpg" alt="Badge reading: last visited a day ago" />
+            <img src="assets/eye.png" alt="Badge reading: last visited a day ago" />
           </div>
           <figcaption>Not open anywhere, but in your history — exact time and visit count.</figcaption>
         </figure>
@@ -542,33 +542,8 @@
         </span>
         <h2 class="display">Nothing you visit ever leaves your browser</h2>
         <p style="color:var(--ink-muted); max-width:62ch; font-size:16.5px;">
-          No backend, no account, no analytics. Here's what each permission
-          actually does:
+          Your privacy comes first. Last Visited doesn't save or store any of your data. You know why ? Because there is no backend attached to this. hehe :-
         </p>
-
-        <div class="perm-list">
-          <div class="perm-row">
-            <div class="perm-name">Tabs</div>
-            <div class="perm-why">Compares your open tabs' URLs against each other. Never sent anywhere.</div>
-          </div>
-          <div class="perm-row">
-            <div class="perm-name">History</div>
-            <div class="perm-why">Checked locally for a prior visit to the same page. Skipped entirely in incognito windows. Never copied or stored by the extension.</div>
-          </div>
-          <div class="perm-row">
-            <div class="perm-name">Notifications</div>
-            <div class="perm-why">Shows the system alert when a match is found. That's the only thing it's used for.</div>
-          </div>
-          <div class="perm-row">
-            <div class="perm-name">Scripting</div>
-            <div class="perm-why">Draws the small on-page badge next to the notification. Runs only on the page you're already viewing.</div>
-          </div>
-          <div class="perm-row">
-            <div class="perm-name">Storage</div>
-            <div class="perm-why">Remembers when each open tab was first seen, for this browser session only. Cleared when you close the browser.</div>
-          </div>
-        </div>
-      </div>
     </section>
 
     <div class="footer-cta">

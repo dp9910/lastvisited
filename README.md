@@ -4,8 +4,6 @@ A Chrome extension (Manifest V3) that detects when the same page is already
 open in another tab — or was visited recently — and lets you jump straight to
 it instead of duplicating it.
 
-See [docs/tab-duplicate-flagger-spec.md](docs/tab-duplicate-flagger-spec.md) for the original v1 spec.
-
 ## How it works
 
 - Watches all open tabs across all windows (`chrome.tabs` events).
