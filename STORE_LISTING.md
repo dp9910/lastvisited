@@ -6,17 +6,23 @@ submitted automatically — use this as the text to paste into each field.
 ## Short description (132 char max)
 
 ```
-Detects duplicate tabs and recent visits to the same page, so you can jump to the existing tab instead of opening it again.
+Avoid duplicate tabs: get notified when a page is already open elsewhere or you visited it recently, and jump straight there.
 ```
-(123 characters)
+(125 characters)
 
 ## Full description
 
 ```
-Last Visited quietly watches your open tabs. The moment you open a page
-that's already sitting in another tab, you get a notification and a small
-on-page badge — with exactly when that other tab was opened — plus a
-one-click "switch to that tab" button.
+Ever end up with the same product page, the same doc, the same article open
+in three different tabs because you forgot you already had it open? Last
+Visited catches that before you add tab #4 — so you stop hunting through
+tabs for the one you already had, and never lose your place re-reading
+something you saw last week.
+
+WHAT IT DOES
+The moment you open a page that's already sitting in another tab, you get a
+notification and a small on-page badge — with exactly when that other tab
+was opened — plus a one-click "switch to that tab" button.
 
 If the page isn't open right now but you visited it in the last 7 days,
 Last Visited tells you that too: last visited date/time and how many times.
@@ -24,11 +30,6 @@ Last Visited tells you that too: last visited date/time and how many times.
 Click the toolbar icon any time for a full dashboard: every group of
 duplicate tabs currently open (with per-tab "opened X ago"), and the current
 tab's visit history for the last week.
-
-WHY
-Ever end up with the same product page, the same doc, the same article open
-in three different tabs because you forgot you already had it open? Last
-Visited catches that before you add tab #4.
 
 PRIVACY
 Everything runs locally in your browser. There is no backend, no account, no

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Last Visited",
   "version": "1.2.0",
-  "description": "Detects when a page is already open in another tab or visited recently, and lets you jump to it instead of duplicating it.",
+  "description": "Avoid duplicate tabs: get notified when a page is already open elsewhere or you visited it recently, and jump straight there.",
   "minimum_chrome_version": "102",
   "permissions": ["tabs", "notifications", "scripting", "history", "storage"],
   "host_permissions": ["http://*/*", "https://*/*"],
