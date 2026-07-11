@@ -3,23 +3,47 @@ importScripts('urlNormalizer.js', 'timeFormat.js');
 const HISTORY_DECAY_DAYS = 7;
 const HISTORY_DECAY_MS = HISTORY_DECAY_DAYS * 24 * 60 * 60 * 1000;
 const IGNORE_RECENT_VISIT_MS = 60 * 1000; // don't match the visit chrome.history just logged for this navigation
+const TAB_META_KEY = 'tabMeta';
 
-// tabId -> { normalizedUrl, openedAt }. In-memory only, per the v1 spec.
-// openedAt is when we first saw this tab at its current normalized URL; for
-// tabs that were already open when the service worker (re)started, it's a
-// best-effort stand-in (we have no way to recover their real open time).
-const tabMeta = new Map();
-const notificationMap = new Map(); // notificationId -> { type: 'duplicate', existingTabId } | { type: 'history' }
+// tabId -> { normalizedUrl, openedAt }, kept in chrome.storage.session rather
+// than a plain JS Map: MV3 service workers are torn down after ~30s idle and
+// any in-memory state is lost on the next wake-up, which made "opened X ago"
+// silently reset mid-session. storage.session survives worker restarts but
+// (like an in-memory Map) is still cleared when the browser itself closes.
+
+async function getTabMeta() {
+  const stored = await chrome.storage.session.get(TAB_META_KEY);
+  return stored[TAB_META_KEY] || {};
+}
+
+async function setTabMetaEntry(tabId, entry) {
+  const meta = await getTabMeta();
+  meta[tabId] = entry;
+  await chrome.storage.session.set({ [TAB_META_KEY]: meta });
+}
+
+async function deleteTabMetaEntry(tabId) {
+  const meta = await getTabMeta();
+  delete meta[tabId];
+  await chrome.storage.session.set({ [TAB_META_KEY]: meta });
+}
 
 async function rebuildState() {
-  tabMeta.clear();
+  const meta = await getTabMeta();
   const tabs = await chrome.tabs.query({});
+  const liveTabIds = new Set(tabs.map((t) => String(t.id)));
   const now = Date.now();
+
   for (const tab of tabs) {
-    if (tab.id !== undefined && isTrackableUrl(tab.url)) {
-      tabMeta.set(tab.id, { normalizedUrl: normalizeUrl(tab.url), openedAt: now });
+    if (tab.id !== undefined && isTrackableUrl(tab.url) && !(tab.id in meta)) {
+      meta[tab.id] = { normalizedUrl: normalizeUrl(tab.url), openedAt: now };
     }
   }
+  for (const tabId of Object.keys(meta)) {
+    if (!liveTabIds.has(tabId)) delete meta[tabId];
+  }
+
+  await chrome.storage.session.set({ [TAB_META_KEY]: meta });
   await updateBadge();
 }
 
@@ -31,7 +55,7 @@ async function focusTab(tabId) {
 }
 
 async function findOpenDuplicateGroups() {
-  const tabs = await chrome.tabs.query({});
+  const [tabs, meta] = await Promise.all([chrome.tabs.query({}), getTabMeta()]);
   const groups = new Map(); // normalizedUrl -> tab[]
   for (const tab of tabs) {
     if (!isTrackableUrl(tab.url)) continue;
@@ -49,7 +73,7 @@ async function findOpenDuplicateGroups() {
         title: tab.title,
         url: tab.url,
         favIconUrl: tab.favIconUrl,
-        openedAt: tabMeta.get(tab.id)?.openedAt ?? null,
+        openedAt: meta[tab.id]?.openedAt ?? null,
       })),
     }));
 }
@@ -62,21 +86,30 @@ async function updateBadge() {
 }
 
 async function injectBadge(tabId, message) {
-  try {
-    await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] });
-    await chrome.tabs.sendMessage(tabId, message);
-  } catch (e) {
-    console.error('[TabDuplicateFlagger] injectBadge failed', tabId, e);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      await chrome.scripting.executeScript({ target: { tabId }, files: ['content.js'] });
+      await chrome.tabs.sendMessage(tabId, message);
+      return;
+    } catch (e) {
+      if (attempt === 0) {
+        // The content script may not have finished registering its listener
+        // yet on a still-loading page — wait once and retry before giving up.
+        await new Promise((r) => setTimeout(r, 400));
+      } else {
+        console.error('[TabDuplicateFlagger] injectBadge failed', tabId, e);
+      }
+    }
   }
 }
 
 async function notifyDuplicateTab(newTabId, existingTab) {
-  const existingMeta = tabMeta.get(existingTab.id);
+  const meta = await getTabMeta();
+  const existingMeta = meta[existingTab.id];
   const openedText = existingMeta ? formatRelativeTime(existingMeta.openedAt) : 'earlier this session';
   const openedAbsolute = existingMeta ? formatAbsoluteTime(existingMeta.openedAt) : null;
 
-  const notificationId = `dup-${newTabId}-${existingTab.id}-${Date.now()}`;
-  notificationMap.set(notificationId, { type: 'duplicate', existingTabId: existingTab.id });
+  const notificationId = `dup-${existingTab.id}-${Date.now()}`;
 
   chrome.notifications.create(notificationId, {
     type: 'basic',
@@ -100,8 +133,7 @@ async function notifyHistoryMatch(tabId, historyItem) {
   const visitedAbsolute = formatAbsoluteTime(historyItem.lastVisitTime);
   const visitCountText = historyItem.visitCount > 1 ? ` (visited ${historyItem.visitCount}×)` : '';
 
-  const notificationId = `hist-${tabId}-${Date.now()}`;
-  notificationMap.set(notificationId, { type: 'history' });
+  const notificationId = `hist-${Date.now()}`;
 
   chrome.notifications.create(notificationId, {
     type: 'basic',
@@ -143,15 +175,16 @@ async function checkHistory(tabId, normalized, rawUrl) {
 
 async function handleTabUrl(tabId, rawUrl) {
   if (!isTrackableUrl(rawUrl)) {
-    tabMeta.delete(tabId);
+    await deleteTabMetaEntry(tabId);
     await updateBadge();
     return;
   }
 
   const normalized = normalizeUrl(rawUrl);
-  const existingEntry = tabMeta.get(tabId);
+  const meta = await getTabMeta();
+  const existingEntry = meta[tabId];
   if (!existingEntry || existingEntry.normalizedUrl !== normalized) {
-    tabMeta.set(tabId, { normalizedUrl: normalized, openedAt: Date.now() });
+    await setTabMetaEntry(tabId, { normalizedUrl: normalized, openedAt: Date.now() });
   }
 
   const allTabs = await chrome.tabs.query({});
@@ -168,41 +201,62 @@ async function handleTabUrl(tabId, rawUrl) {
   await updateBadge();
 }
 
+// tabId -> normalizedUrl last handled, so a single navigation that fires
+// multiple onUpdated events (loading + complete) doesn't trigger duplicate
+// notifications/badges twice. Fine to keep in-memory: worst case after a
+// worker restart is one redundant check, not a missed or repeated user-facing
+// notification storm.
+const lastHandledUrl = new Map();
+
+function maybeHandleTabUrl(tabId, rawUrl) {
+  if (!rawUrl) return;
+  const normalized = isTrackableUrl(rawUrl) ? normalizeUrl(rawUrl) : rawUrl;
+  if (lastHandledUrl.get(tabId) === normalized) return;
+  lastHandledUrl.set(tabId, normalized);
+  handleTabUrl(tabId, rawUrl);
+}
+
 chrome.runtime.onInstalled.addListener(rebuildState);
 chrome.runtime.onStartup.addListener(rebuildState);
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.url) {
-    handleTabUrl(tabId, changeInfo.url);
+    maybeHandleTabUrl(tabId, changeInfo.url);
   } else if (changeInfo.status === 'complete' && tab.url) {
-    handleTabUrl(tabId, tab.url);
+    maybeHandleTabUrl(tabId, tab.url);
   }
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
-  tabMeta.delete(tabId);
-  updateBadge();
+  lastHandledUrl.delete(tabId);
+  deleteTabMetaEntry(tabId).then(updateBadge);
 });
 
 chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
-  tabMeta.delete(removedTabId);
+  lastHandledUrl.delete(removedTabId);
+  deleteTabMetaEntry(removedTabId);
   chrome.tabs.get(addedTabId).then((tab) => {
-    if (tab && isTrackableUrl(tab.url)) handleTabUrl(addedTabId, tab.url);
+    if (tab && isTrackableUrl(tab.url)) maybeHandleTabUrl(addedTabId, tab.url);
   }).catch(() => {});
 });
 
+function parseNotificationId(notificationId) {
+  const [type, arg] = notificationId.split('-');
+  if (type === 'dup') return { type: 'duplicate', existingTabId: Number(arg) };
+  if (type === 'hist') return { type: 'history' };
+  return null;
+}
+
 chrome.notifications.onButtonClicked.addListener((notificationId) => {
-  const entry = notificationMap.get(notificationId);
+  const entry = parseNotificationId(notificationId);
   if (entry?.type === 'duplicate') focusTab(entry.existingTabId);
   chrome.notifications.clear(notificationId);
-  notificationMap.delete(notificationId);
 });
 
 chrome.notifications.onClicked.addListener((notificationId) => {
-  const entry = notificationMap.get(notificationId);
+  const entry = parseNotificationId(notificationId);
   if (entry?.type === 'duplicate') focusTab(entry.existingTabId);
   chrome.notifications.clear(notificationId);
-  notificationMap.delete(notificationId);
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
