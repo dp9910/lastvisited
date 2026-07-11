@@ -1,4 +1,5 @@
 const HISTORY_DECAY_DAYS = 7;
+const IGNORE_RECENT_VISIT_MS = 60 * 1000; // matches background.js — excludes the current page view itself
 
 // Start of day, N days ago — see the matching comment in background.js for
 // why this isn't a strict "now minus N*24h" rolling window.
@@ -61,21 +62,17 @@ function renderDuplicateGroups(groups) {
   }
 }
 
-function renderHistoryMatches(matches) {
+function renderHistoryMatches(visitTimes) {
   historyEl.textContent = '';
 
-  if (!matches.length) {
+  if (!visitTimes.length) {
     historyEl.appendChild(el('p', 'empty-state', 'No recent visits found for this page.'));
     return;
   }
 
-  for (const item of matches) {
+  for (const visitTime of visitTimes) {
     const row = el('div', 'history-row');
-    const left = document.createElement('div');
-    left.appendChild(el('div', 'history-when', `${formatRelativeTime(item.lastVisitTime)} · ${formatAbsoluteTime(item.lastVisitTime)}`));
-    left.appendChild(el('div', 'dup-group-url', item.url));
-    row.appendChild(left);
-    row.appendChild(el('span', 'history-count', item.visitCount > 1 ? `${item.visitCount}×` : ''));
+    row.appendChild(el('div', 'history-when', `${formatRelativeTime(visitTime)} · ${formatAbsoluteTime(visitTime)}`));
     historyEl.appendChild(row);
   }
 }
@@ -111,12 +108,24 @@ async function loadHistoryForActiveTab() {
     maxResults: 100,
   });
 
-  const matches = results
-    .filter((r) => normalizeUrl(r.url) === normalized)
-    .sort((a, b) => b.lastVisitTime - a.lastVisitTime)
+  // chrome.history.search only exposes each URL's aggregated lastVisitTime
+  // (the single most recent visit), which — since we're checking the page
+  // you're on right now — is always this exact visit. Pull the full
+  // per-visit timestamps instead and exclude the one(s) from just now, so
+  // this shows genuine prior visits rather than nothing at all.
+  const matchingEntries = results.filter((r) => normalizeUrl(r.url) === normalized);
+  const visitLists = await Promise.all(
+    matchingEntries.map((r) => chrome.history.getVisits({ url: r.url }).catch(() => []))
+  );
+  const now = Date.now();
+  const priorVisitTimes = visitLists
+    .flat()
+    .map((v) => v.visitTime)
+    .filter((t) => t && now - t > IGNORE_RECENT_VISIT_MS)
+    .sort((a, b) => b - a)
     .slice(0, 10);
 
-  renderHistoryMatches(matches);
+  renderHistoryMatches(priorVisitTimes);
 }
 
 loadDuplicates();

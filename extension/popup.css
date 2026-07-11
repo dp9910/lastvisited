@@ -187,8 +187,3 @@ main {
 .history-when {
   font-weight: 500;
 }
-
-.history-count {
-  color: var(--muted);
-  font-size: 11px;
-}

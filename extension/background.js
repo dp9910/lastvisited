@@ -177,17 +177,40 @@ async function checkHistory(tabId, normalized, rawUrl) {
   if (!hostname) return; // e.g. file:// URLs — no meaningful text to search history with
 
   const now = Date.now();
-  const results = await chrome.history.search({
+  const candidates = await chrome.history.search({
     text: hostname,
     startTime: getHistoryStartTime(),
     maxResults: 100,
   }).catch(() => []);
 
-  const match = results.find(
-    (r) => r.lastVisitTime && now - r.lastVisitTime > IGNORE_RECENT_VISIT_MS && normalizeUrl(r.url) === normalized
-  );
+  // chrome.history.search only exposes each URL's *aggregated* lastVisitTime
+  // (the single most recent visit) — and Chrome logs the current navigation's
+  // own visit essentially the instant it commits, so that aggregate is
+  // almost always indistinguishable from "just now," even when there were
+  // real earlier visits. Pull the actual per-visit timestamps via getVisits
+  // and use the most recent one that ISN'T this navigation, so a genuine
+  // prior visit doesn't get masked by the current one. Also merge visits
+  // across every URL variant that normalizes the same way (e.g. www vs
+  // non-www are distinct entries to chrome.history despite being one page).
+  const matchingEntries = candidates.filter((r) => normalizeUrl(r.url) === normalized);
+  if (matchingEntries.length === 0) return;
 
-  if (match) await notifyHistoryMatch(tabId, match);
+  const visitLists = await Promise.all(
+    matchingEntries.map((r) => chrome.history.getVisits({ url: r.url }).catch(() => []))
+  );
+  const priorVisits = visitLists
+    .flat()
+    .filter((v) => v.visitTime && now - v.visitTime > IGNORE_RECENT_VISIT_MS);
+
+  if (priorVisits.length === 0) return;
+
+  const mostRecentPriorVisit = priorVisits.reduce((a, b) => (a.visitTime > b.visitTime ? a : b));
+  const totalVisitCount = matchingEntries.reduce((sum, r) => sum + (r.visitCount || 0), 0);
+
+  await notifyHistoryMatch(tabId, {
+    lastVisitTime: mostRecentPriorVisit.visitTime,
+    visitCount: totalVisitCount,
+  });
 }
 
 async function handleTabUrl(tabId, rawUrl, incognito) {
